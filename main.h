@@ -21,12 +21,17 @@
 #define PIN 1
 #define WEAPON 2
 
+#define DWARF 0
+#define GNOME 1
+
 /* tutaj TYLKO zapowiedzi - definicje w main.c */
 extern int rank;
 extern int size;
-extern int ackCount;
+extern int ackGnomes;
+extern int ackDwarves;
 extern pthread_t threadKom;
 extern int vClock;
+extern int bronie;
 
 
 

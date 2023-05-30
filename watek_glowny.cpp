@@ -10,7 +10,6 @@ void mainLoopGnome(int gnomes, int dwarves, int sights, int pins)
 	bool ubieganie_agrawka;
 	bool ma_agrafke;
 	bool ma_celownik;
-	int bronie;
 
 
     while (stan != InFinish) {
@@ -19,25 +18,32 @@ void mainLoopGnome(int gnomes, int dwarves, int sights, int pins)
 		{perc = random()%100;
 		if ( perc < 25 ) {
 			perc = random()%100;
-			if ( perc < 50 ) {
+			if ( perc < 50 || ma_agrafke) {
 				debug("Perc: %d", perc);
-				println("Ubiegam się o sekcję krytyczną związaną z celownikiem")
+				println("Ubiegam się o sekcję krytyczną związaną z celownikiem");
 				debug("Zmieniam stan na wysyłanie");
 				packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
-				pkt->data = SIGHT;
-				ackCount = 0;
+				pkt->who = GNOME;
+				pkt->what = PIN;
+				ackDwarves = 0;
+				ackGnomes = 0;
+				ubieganie_celownik = TRUE;
 				for (int i=0;i<=size-1;i++)
 				if (i!=rank)
 					sendPacket( pkt, i, REQUEST);
 				changeState( InWantSight );
 				free(pkt);
-			}else{
+			}
+			if(perc >=50 || ma_celownik){
 				debug("Perc: %d", perc);
-				println("Ubiegam się o sekcję krytyczną związaną z agrafką")
+				println("Ubiegam się o sekcję krytyczną związaną z agrafką");
 				debug("Zmieniam stan na wysyłanie");
 				packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
-				pkt->data = PIN;
-				ackCount = 0;
+				pkt->who = GNOME;
+				pkt->what = SIGHT;
+				ackDwarves = 0;
+				ackGnomes = 0;
+				ubieganie_agrawka = TRUE;
 				for (int i=0;i<=size-1;i++)
 				if (i!=rank)
 					sendPacket( pkt, i, REQUEST);
@@ -48,36 +54,50 @@ void mainLoopGnome(int gnomes, int dwarves, int sights, int pins)
 		debug("Skończyłem myśleć");
 		break;}
 	    case InWantPin:
-		{println("Czekam na wejście do sekcji krytycznej związanej z agrafkami")
-		// tutaj zapewne jakiś muteks albo zmienna warunkowa
-		// bo aktywne czekanie jest BUE
-		if ( ackCount == dwarves + gnomes - pins) 
-		    changeState(InSection);
-		break;}
+		{
+			println("Czekam na wejście do sekcji krytycznej związanej z agrafkami");
+			if ( ackDwarves + ackGnomes >= dwarves + gnomes - pins){
+				changeState(InSection);
+			}
+			break;
+		}
 		case InWantSight:
-		{println("Czekam na wejście do sekcji krytycznej związanej z celownikami")
-		// tutaj zapewne jakiś muteks albo zmienna warunkowa
-		// bo aktywne czekanie jest BUE
-		if ( ackCount == dwarves + gnomes - sights) 
-		    changeState(InSection);
-		break;}
+		{
+			println("Czekam na wejście do sekcji krytycznej związanej z celownikami")
+			if ( ackDwarves + ackGnomes >= dwarves + gnomes - sights) 
+				changeState(InSection);
+			break;
+		}
 	    case InSection:
-		{// tutaj zapewne jakiś muteks albo zmienna warunkowa
-		println("Jestem w sekcji krytycznej")
-		    sleep(5);
-		//if ( perc < 25 ) {
-		    debug("Perc: %d", perc);
-		    println("Wychodzę z sekcji krytyczneh")
-		    debug("Zmieniam stan na wysyłanie");
-		    packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
-		    pkt->data = perc;
-		    for (int i=0;i<=size-1;i++)
-			if (i!=rank)
-			    sendPacket( pkt, (rank+1)%size, RELEASE);
-		    changeState( InRun );
-		    free(pkt);
-		//}
-		break;}
+		{
+			println("Jestem w sekcji krytycznej")
+			sleep(5);
+			//if ( perc < 25 ) {
+				debug("Perc: %d", perc);
+				println("Wychodzę z sekcji krytycznej");
+
+
+				if(ubieganie_agrawka = TRUE){
+					ma_agrafke = TRUE;
+					ubieganie_agrawka = FALSE;
+					println("Otrzymałem agrafkę")	
+				}
+				if(ubieganie_celownik = TRUE){
+					ma_celownik = TRUE;
+					ubieganie_celownik = FALSE;
+					println("Otrzymałem celownik")
+				}
+				if(ma_agrafke && ma_celownik){
+						ma_agrafke = FALSE;
+                    	ma_celownik = FALSE;
+						bronie++;
+						ubieganie_agrawka = TRUE;
+						ubieganie_celownik = TRUE;
+				}
+				changeState( InRun );
+			//}
+			break;
+		}
 	    default: 
 		{break;}
         }
@@ -91,58 +111,49 @@ void mainLoopDwarf(int gnomes, int dwarves)
     int tag;
     int perc;
 	bool ubieganie_bron;
-	std::vector<int> oczekujace_bron;
-	std::vector<int> oczekujace_agrafki;
-	std::vector<int> oczekujace_celowniki;
 
     while (stan != InFinish) {
 	switch (stan) {
 	    case InRun: 
-		{perc = random()%100;
-		if ( perc < 25 ) {
-		    debug("Perc: %d", perc);
-		    println("Ubiegam się o sekcję krytyczną")
-		    debug("Zmieniam stan na wysyłanie");
-		    packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
-		    pkt->data = perc;
-		    ackCount = 0;
-		    for (int i=0;i<=size-1;i++)
-			if (i!=rank)
-			    sendPacket( pkt, i, REQUEST);
-		    changeState( InWant ); // w VI naciśnij ctrl-] na nazwie funkcji, ctrl+^ żeby wrócić
-					   // :w żeby zapisać, jeżeli narzeka że w pliku są zmiany
-					   // ewentualnie wciśnij ctrl+w ] (trzymasz ctrl i potem najpierw w, potem ]
-					   // między okienkami skaczesz ctrl+w i strzałki, albo ctrl+ww
-					   // okienko zamyka się :q
-					   // ZOB. regułę tags: w Makefile (naciśnij gf gdy kursor jest na nazwie pliku)
-		    free(pkt);
-		} // a skoro już jesteśmy przy komendach vi, najedź kursorem na } i wciśnij %  (niestety głupieje przy komentarzach :( )
-		debug("Skończyłem myśleć");
-		break;}
-	    case InWant:
-		{println("Czekam na wejście do sekcji krytycznej")
-		// tutaj zapewne jakiś muteks albo zmienna warunkowa
-		// bo aktywne czekanie jest BUE
-		if ( ackCount == size - 1) 
-		    changeState(InSection);
-		break;}
+		{
+			perc = random()%100;
+			if ( perc < 25 ) {
+				debug("Perc: %d", perc);
+				println("Ubiegam się o sekcję krytyczną związaną z brońmi")
+				debug("Zmieniam stan na wysyłanie");
+				packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
+				pkt->who = DWARF;
+				pkt->what = WEAPON;
+				ackDwarves = 0;
+				ackGnomes = 0;
+				for (int i=0;i<=size-1;i++)
+				if (i!=rank)
+					sendPacket( pkt, i, REQUEST);
+				changeState( InWantWeapon );
+				free(pkt);
+			}
+			debug("Skończyłem myśleć");
+			break;
+		}
+	    case InWantWeapon:
+		{
+			println("Czekam na wejście do sekcji krytycznej związanej z brońmi")
+			if ( ackDwarves - dwarves >= ackGnomes ) 
+				changeState(InSection);
+			break;
+		}
 	    case InSection:
-		{// tutaj zapewne jakiś muteks albo zmienna warunkowa
-		println("Jestem w sekcji krytycznej")
-		    sleep(5);
-		//if ( perc < 25 ) {
-		    debug("Perc: %d", perc);
-		    println("Wychodzę z sekcji krytyczneh")
-		    debug("Zmieniam stan na wysyłanie");
-		    packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
-		    pkt->data = perc;
-		    for (int i=0;i<=size-1;i++)
-			if (i!=rank)
-			    sendPacket( pkt, (rank+1)%size, RELEASE);
-		    changeState( InRun );
-		    free(pkt);
-		//}
-		break;}
+		{
+			println("Jestem w sekcji krytycznej")
+			sleep(5);
+			//if ( perc < 25 ) {
+			debug("Perc: %d", perc);
+			println("Wychodzę z sekcji krytycznej związanej z brońmi");
+	
+			changeState( InRun );
+			//}
+			break;
+		}
 	    default: 
 		{break;}
         }

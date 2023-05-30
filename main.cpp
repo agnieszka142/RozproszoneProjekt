@@ -13,8 +13,10 @@
  *
  */
 int rank, size;
-int ackCount = 0;
+int ackDwarves = 0;
+int ackGnomes = 0;
 int vClock = 0;
+int bronie = 0;
 /* 
  * Każdy proces ma dwa wątki - główny i komunikacyjny
  * w plikach, odpowiednio, watek_glowny.c oraz (siurpryza) watek_komunikacyjny.c
