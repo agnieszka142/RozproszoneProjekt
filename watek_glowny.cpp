@@ -92,13 +92,26 @@ void mainLoopGnome(int gnomes, int dwarves, int sights, int pins)
             	ma_celownik = FALSE;
 				ma_bron = TRUE;
 			    println("Utworzylem bron                                        === B ===");
-			    while(ma_bron);
+			    
+			    packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
+			    pkt->who = GNOME;
+                while(ma_bron) {
+			        for (int pid : oczekujace_bron) {
+                        sendPacket( pkt, pid, ACK );
+                        println("Wysylam ACK do oczekujacego %d", pid);
+                        ma_bron = FALSE;
+                    }
+                    oczekujace_bron.clear();
+                }
+                
 				ubieganie_agrawka = TRUE;
 				ubieganie_celownik = TRUE;
 			}
 			
 			println("Wychodzę z sekcji krytycznej");
 			changeState( InRun );
+			
+            
 			break;
 		}
 	    default: 

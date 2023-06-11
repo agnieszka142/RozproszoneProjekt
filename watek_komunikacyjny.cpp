@@ -8,26 +8,17 @@ void *startComGnome(void *ptr)
     MPI_Status status;
     int is_message = FALSE;
     packet_t pakiet;
-    std::vector<int> oczekujace_bron;
 	std::vector<int> zgody;
 	
 	packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
 	pkt->who = GNOME;
     
     while ( stan != InFinish ) {
-    
-        if( stan == InSection && ma_bron ) {
-            for (int pid : oczekujace_bron) {
-                sendPacket( pkt, pid, ACK );
-                println("Wysylam ACK do oczekujacego %d", pid);
-            }
-            oczekujace_bron.clear();
-        }
+	    
+        MPI_Recv( &pakiet, 1, MPI_PAKIET_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         
         if( stan == InRun )
             zgody.clear();
-	    
-        MPI_Recv( &pakiet, 1, MPI_PAKIET_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
             
         switch ( status.MPI_TAG ) {
 	        case REQUEST:
@@ -50,7 +41,7 @@ void *startComGnome(void *ptr)
                             }
                         }
                     }
-                    println("Czy mam agrafke? %s", ma_agrafke ? "tak" : "nie");
+                    println("Czy blokuje agrafke? %s", ma_agrafke ? "tak" : "nie");
                     if(stan != InWantPin && !ma_agrafke){
                         sendPacket( pkt, status.MPI_SOURCE, ACK );
                     }
@@ -73,7 +64,7 @@ void *startComGnome(void *ptr)
                             }
                         }
                     }
-                    println("Czy mam celownik? %s", ma_celownik ? "tak" : "nie");
+                    println("Czy blokuje celownik? %s", ma_celownik ? "tak" : "nie");
                     if(stan != InWantSight && !ma_celownik){
                         sendPacket( pkt, status.MPI_SOURCE, ACK );
                     }
@@ -84,7 +75,8 @@ void *startComGnome(void *ptr)
                     if(ma_bron){
                         sendPacket( pkt, status.MPI_SOURCE, ACK );
                         ma_bron = FALSE;
-                    }else{
+                    }
+                    else {
                         oczekujace_bron.push_back(pakiet.src);
                         println("Dodaje %d do oczekujacych na bron", pakiet.src);
                     }
@@ -169,7 +161,7 @@ void *startComDwarf(void *ptr)
                 }
                 if(pakiet.what == WEAPON){
                     //debug("Otrzymalem prosbe o bron");
-                    if(stan == InWantWeapon && pakiet.ts > vClock){
+                    /*if(stan == InWantWeapon && pakiet.ts > vClock){
                         if(pakiet.who == DWARF){
                             if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
                                 ackDwarves++;
@@ -184,7 +176,7 @@ void *startComDwarf(void *ptr)
                                 debug("Dostałem REQ, ktory traktuje jak ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
                             }
                         }
-                    }
+                    }*/
                     if(stan != InWantWeapon){
                         sendPacket( pkt, status.MPI_SOURCE, ACK );
                     }

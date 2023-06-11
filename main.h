@@ -34,7 +34,7 @@ extern int vClock;
 extern bool ma_bron;
 extern bool ma_agrafke;
 extern bool ma_celownik;
-
+extern std::vector<int> oczekujace_bron;
 
 
 

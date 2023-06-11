@@ -19,6 +19,8 @@ int vClock = 0;
 bool ma_bron = FALSE;
 bool ma_agrafke = FALSE;
 bool ma_celownik = FALSE;
+std::vector<int> oczekujace_bron;
+
 /* 
  * Każdy proces ma dwa wątki - główny i komunikacyjny
  * w plikach, odpowiednio, watek_glowny.c oraz (siurpryza) watek_komunikacyjny.c
