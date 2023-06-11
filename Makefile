@@ -16,5 +16,5 @@ clean:
 tags: ${SOURCES} ${HEADERS}
 	ctags -R .
 
-run: main Makefile tags
+run: main
 	mpirun -oversubscribe -np 10 ./main 5 5 5 5
