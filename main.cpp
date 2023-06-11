@@ -16,7 +16,9 @@ int rank, size;
 int ackDwarves = 0;
 int ackGnomes = 0;
 int vClock = 0;
-int bronie = 0;
+bool ma_bron = FALSE;
+bool ma_agrafke = FALSE;
+bool ma_celownik = FALSE;
 /* 
  * Każdy proces ma dwa wątki - główny i komunikacyjny
  * w plikach, odpowiednio, watek_glowny.c oraz (siurpryza) watek_komunikacyjny.c
@@ -72,7 +74,7 @@ int main(int argc, char **argv)
     MPI_Status status;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-    check_thread_support(provided);
+    //check_thread_support(provided);
     srand(rank);
     /* zob. util.c oraz util.h */
     inicjuj_typ_pakietu(); // tworzy typ pakietu

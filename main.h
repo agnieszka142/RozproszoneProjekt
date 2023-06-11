@@ -31,7 +31,9 @@ extern int ackGnomes;
 extern int ackDwarves;
 extern pthread_t threadKom;
 extern int vClock;
-extern int bronie;
+extern bool ma_bron;
+extern bool ma_agrafke;
+extern bool ma_celownik;
 
 
 

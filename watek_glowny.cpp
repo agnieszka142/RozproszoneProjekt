@@ -6,96 +6,99 @@ void mainLoopGnome(int gnomes, int dwarves, int sights, int pins)
     srandom(rank);
     int tag;
     int perc;
-	bool ubieganie_celownik;
-	bool ubieganie_agrawka;
-	bool ma_agrafke;
-	bool ma_celownik;
+	bool ubieganie_celownik = FALSE;
+	bool ubieganie_agrawka = FALSE;
+	/*bool ma_agrafke = FALSE;
+	bool ma_celownik = FALSE;*/
+    println("Jestem nowym gnomem\n");
 
 
     while (stan != InFinish) {
 	switch (stan) {
 	    case InRun: 
-		{perc = random()%100;
-		if ( perc < 25 ) {
-			perc = random()%100;
-			if ( perc < 50 || ma_agrafke) {
+		{
+		    perc = random()%100;
+		    if ( perc < 25 ) {
+			    perc = random()%100;
 				debug("Perc: %d", perc);
-				println("Ubiegam się o sekcję krytyczną związaną z celownikiem");
-				debug("Zmieniam stan na wysyłanie");
-				packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
-				pkt->who = GNOME;
-				pkt->what = PIN;
-				ackDwarves = 0;
-				ackGnomes = 0;
-				ubieganie_celownik = TRUE;
-				for (int i=0;i<=size-1;i++)
-				if (i!=rank)
-					sendPacket( pkt, i, REQUEST);
-				changeState( InWantSight );
-				free(pkt);
-			}
-			if(perc >=50 || ma_celownik){
-				debug("Perc: %d", perc);
-				println("Ubiegam się o sekcję krytyczną związaną z agrafką");
-				debug("Zmieniam stan na wysyłanie");
-				packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
-				pkt->who = GNOME;
-				pkt->what = SIGHT;
-				ackDwarves = 0;
-				ackGnomes = 0;
-				ubieganie_agrawka = TRUE;
-				for (int i=0;i<=size-1;i++)
-				if (i!=rank)
-					sendPacket( pkt, i, REQUEST);
-				changeState( InWantPin );
-				free(pkt);
-			}
+			    if ( perc < 50 || ma_agrafke) {
+				    println("Rozpoczynam przetwarzanie");
+				    println("Ubiegam się o sekcję krytyczną związaną z celownikiem");
+				    packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
+				    pkt->who = GNOME;
+				    pkt->what = SIGHT;
+				    ackDwarves = 0;
+				    ackGnomes = 0;
+				    changeState( InWantSight );
+				    ubieganie_celownik = TRUE;
+				    for (int i=0;i<=size-1;i++)
+				    if (i!=rank)
+					    sendPacket( pkt, i, REQUEST);
+				    free(pkt);
+			    }
+			    else if(perc >=50 || ma_celownik){
+				    println("Ubiegam się o sekcję krytyczną związaną z agrafką");
+				    packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
+				    pkt->who = GNOME;
+				    pkt->what = PIN;
+				    ackDwarves = 0;
+				    ackGnomes = 0;
+				    ubieganie_agrawka = TRUE;
+				    changeState( InWantPin );
+				    for (int i=0;i<=size-1;i++)
+				    if (i!=rank)
+					    sendPacket( pkt, i, REQUEST);
+				    free(pkt);
+			    }
+		    }
+		    else
+		        //debug("Na razie czekam");
+		    break;
 		}
-		debug("Skończyłem myśleć");
-		break;}
 	    case InWantPin:
 		{
-			println("Czekam na wejście do sekcji krytycznej związanej z agrafkami");
-			if ( ackDwarves + ackGnomes >= dwarves + gnomes - pins){
-				changeState(InSection);
-			}
+			println("Zbieram zgody na wejście do sekcji krytycznej związanej z agrafkami");
+			while ( ackDwarves + ackGnomes < dwarves + gnomes - pins);
+			println("Uzbieralem wystarczajaco zgod");
+			changeState(InSection);
 			break;
 		}
 		case InWantSight:
 		{
-			println("Czekam na wejście do sekcji krytycznej związanej z celownikami")
-			if ( ackDwarves + ackGnomes >= dwarves + gnomes - sights) 
-				changeState(InSection);
+			println("Zbieram zgody na wejście do sekcji krytycznej związanej z celownikami");
+			while ( ackDwarves + ackGnomes < dwarves + gnomes - sights);
+			println("Uzbieralem wystarczajaco zgod");
+			changeState(InSection);
 			break;
 		}
 	    case InSection:
 		{
 			println("Jestem w sekcji krytycznej")
-			sleep(5);
-			//if ( perc < 25 ) {
-				debug("Perc: %d", perc);
-				println("Wychodzę z sekcji krytycznej");
 
-
-				if(ubieganie_agrawka = TRUE){
-					ma_agrafke = TRUE;
-					ubieganie_agrawka = FALSE;
-					println("Otrzymałem agrafkę")	
-				}
-				if(ubieganie_celownik = TRUE){
-					ma_celownik = TRUE;
-					ubieganie_celownik = FALSE;
-					println("Otrzymałem celownik")
-				}
-				if(ma_agrafke && ma_celownik){
-						ma_agrafke = FALSE;
-                    	ma_celownik = FALSE;
-						bronie++;
-						ubieganie_agrawka = TRUE;
-						ubieganie_celownik = TRUE;
-				}
-				changeState( InRun );
-			//}
+			if(ubieganie_agrawka){
+				ma_agrafke = TRUE;
+				ubieganie_agrawka = FALSE;
+				println("Otrzymałem agrafkę                                     === A ===");
+			}
+			if(ubieganie_celownik){
+				ma_celownik = TRUE;
+				ubieganie_celownik = FALSE;
+				println("Otrzymałem celownik                                    === C ===");
+			}
+			sleep(2);
+			
+			if(ma_agrafke && ma_celownik){
+				ma_agrafke = FALSE;
+            	ma_celownik = FALSE;
+				ma_bron = TRUE;
+			    println("Utworzylem bron                                        === B ===");
+			    while(ma_bron);
+				ubieganie_agrawka = TRUE;
+				ubieganie_celownik = TRUE;
+			}
+			
+			println("Wychodzę z sekcji krytycznej");
+			changeState( InRun );
 			break;
 		}
 	    default: 
@@ -110,17 +113,18 @@ void mainLoopDwarf(int gnomes, int dwarves)
     srandom(rank);
     int tag;
     int perc;
-	bool ubieganie_bron;
-
+	bool ubieganie_bron = FALSE;
+    println("Jestem nowym skrzatem\n");
+    
     while (stan != InFinish) {
 	switch (stan) {
 	    case InRun: 
 		{
 			perc = random()%100;
 			if ( perc < 25 ) {
-				debug("Perc: %d", perc);
+				//debug("Perc: %d", perc);
+				println("Rozpoczynam przetwarzanie");
 				println("Ubiegam się o sekcję krytyczną związaną z brońmi")
-				debug("Zmieniam stan na wysyłanie");
 				packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
 				pkt->who = DWARF;
 				pkt->what = WEAPON;
@@ -132,26 +136,27 @@ void mainLoopDwarf(int gnomes, int dwarves)
 				changeState( InWantWeapon );
 				free(pkt);
 			}
-			debug("Skończyłem myśleć");
+		    else
+		        //debug("Na razie czekam");
 			break;
 		}
 	    case InWantWeapon:
 		{
-			println("Czekam na wejście do sekcji krytycznej związanej z brońmi")
-			if ( ackDwarves - dwarves >= ackGnomes ) 
-				changeState(InSection);
+			println("Zbieram zgody na wejście do sekcji krytycznej związanej z brońmi");
+			while ( ackGnomes < dwarves - ackDwarves );
+			println("Zgody od gnomow (%d) musza byc rowne co najmniej liczbie skrzatow (%d) - zgody od skrzatow (%d)", ackGnomes, dwarves, ackDwarves);
+			println("Uzbieralem wystarczajaco zgod");
+			changeState( InSection );
 			break;
 		}
 	    case InSection:
 		{
-			println("Jestem w sekcji krytycznej")
+			println("Jestem w sekcji krytycznej");
+			println("Zabijam szczura                                        === SZ ===");
 			sleep(5);
-			//if ( perc < 25 ) {
-			debug("Perc: %d", perc);
 			println("Wychodzę z sekcji krytycznej związanej z brońmi");
 	
 			changeState( InRun );
-			//}
 			break;
 		}
 	    default: 
