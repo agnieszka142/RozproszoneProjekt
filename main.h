@@ -31,10 +31,12 @@ extern int ackGnomes;
 extern int ackDwarves;
 extern pthread_t threadKom;
 extern int vClock;
+extern int myRequestClock;
 extern bool ma_bron;
 extern bool ma_agrafke;
 extern bool ma_celownik;
 extern std::vector<int> oczekujace_bron;
+extern std::vector<int> zgodyGnom;
 
 
 

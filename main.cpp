@@ -16,10 +16,12 @@ int rank, size;
 int ackDwarves = 0;
 int ackGnomes = 0;
 int vClock = 0;
+int myRequestClock = 0;
 bool ma_bron = FALSE;
 bool ma_agrafke = FALSE;
 bool ma_celownik = FALSE;
 std::vector<int> oczekujace_bron;
+std::vector<int> zgodyGnom;
 
 /* 
  * Każdy proces ma dwa wątki - główny i komunikacyjny

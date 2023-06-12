@@ -2,13 +2,13 @@
 #include "watek_komunikacyjny.h"
 #include <algorithm>
 
-/* wątek komunikacyjny; zajmuje się odbiorem i reakcją na komunikaty */
 void *startComGnome(void *ptr)
 {
     MPI_Status status;
     int is_message = FALSE;
     packet_t pakiet;
-	std::vector<int> zgody;
+	auto index = zgodyGnom.end();
+	bool receivedReleaseFromDwarf = FALSE;
 	
 	packet_t *pkt = (packet_t *) malloc(sizeof(packet_t));
 	pkt->who = GNOME;
@@ -17,60 +17,54 @@ void *startComGnome(void *ptr)
 	    
         MPI_Recv( &pakiet, 1, MPI_PAKIET_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         
-        if( stan == InRun )
-            zgody.clear();
-            
         switch ( status.MPI_TAG ) {
 	        case REQUEST:
 	        {
                 if(pakiet.what == PIN) {
-                    //debug("Otrzymalem prosbe o agrafke");
-                    if(stan == InWantPin && pakiet.ts > vClock){
+                    if(stan == InWantPin && pakiet.ts > myRequestClock){
                         if(pakiet.who == DWARF){
-                            if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
+                            if(std::find(zgodyGnom.begin(), zgodyGnom.end(), pakiet.src) == zgodyGnom.end()) {
                                 ackDwarves++;
-                                zgody.push_back(pakiet.src);
+                                zgodyGnom.push_back(pakiet.src);
                                 debug("Dostałem REQ, ktory traktuje jak ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
                             }
                         }
                         if(pakiet.who == GNOME){
-                            if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
+                            if(std::find(zgodyGnom.begin(), zgodyGnom.end(), pakiet.src) == zgodyGnom.end()) {
                                 ackGnomes++;
-                                zgody.push_back(pakiet.src);
+                                zgodyGnom.push_back(pakiet.src);
                                 debug("Dostałem REQ, ktory traktuje jak ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
                             }
                         }
                     }
                     println("Czy blokuje agrafke? %s", ma_agrafke ? "tak" : "nie");
-                    if(stan != InWantPin && !ma_agrafke){
+                    if(stan != InWantPin && !ma_agrafke && stan != InSection){
                         sendPacket( pkt, status.MPI_SOURCE, ACK );
                     }
                 }
                 if(pakiet.what == SIGHT){
-                    //debug("Otrzymalem prosbe o celownik");
-                    if(stan == InWantSight && pakiet.ts > vClock){
+                    if(stan == InWantSight && pakiet.ts > myRequestClock){
                         if(pakiet.who == DWARF){
-                            if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
+                            if(std::find(zgodyGnom.begin(), zgodyGnom.end(), pakiet.src) == zgodyGnom.end()) {
                                 ackDwarves++;
-                                zgody.push_back(pakiet.src);
+                                zgodyGnom.push_back(pakiet.src);
                                 debug("Dostałem REQ, ktory traktuje jak ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
                             }
                         }
                         if(pakiet.who == GNOME){
-                            if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
+                            if(std::find(zgodyGnom.begin(), zgodyGnom.end(), pakiet.src) == zgodyGnom.end()) {
                                 ackGnomes++;
-                                zgody.push_back(pakiet.src);
+                                zgodyGnom.push_back(pakiet.src);
                                 debug("Dostałem REQ, ktory traktuje jak ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
                             }
                         }
                     }
                     println("Czy blokuje celownik? %s", ma_celownik ? "tak" : "nie");
-                    if(stan != InWantSight && !ma_celownik){
+                    if(stan != InWantSight && !ma_celownik && stan != InSection){
                         sendPacket( pkt, status.MPI_SOURCE, ACK );
                     }
                 }
                 if(pakiet.what == WEAPON){
-                    //debug("Otrzymalem prosbe o bron");
                     println("Czy mam bron? %s", ma_bron ? "tak" : "nie");
                     if(ma_bron){
                         sendPacket( pkt, status.MPI_SOURCE, ACK );
@@ -81,24 +75,46 @@ void *startComGnome(void *ptr)
                         println("Dodaje %d do oczekujacych na bron", pakiet.src);
                     }
                 }
-	            break;
+                break;
 	        }
 	        case ACK:
 	        {
 	            if(pakiet.who == DWARF){
-	                if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
+	                if(std::find(zgodyGnom.begin(), zgodyGnom.end(), pakiet.src) == zgodyGnom.end()) {
                         ackDwarves++;
-                        zgody.push_back(pakiet.src);
+                        zgodyGnom.push_back(pakiet.src);
+                        debug("Dostałem ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
                     }
                 }
-                if(pakiet.who == GNOME){
-                    if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
+                else if(pakiet.who == GNOME){
+                    if(std::find(zgodyGnom.begin(), zgodyGnom.end(), pakiet.src) == zgodyGnom.end()) {
                         ackGnomes++;
-                        zgody.push_back(pakiet.src);
+                        zgodyGnom.push_back(pakiet.src);
+                        debug("Dostałem ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
                     }
                 }
-                debug("Dostałem ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
+                else debug("Nie udalo sie odebrac ACK");
 	            break;
+	        }
+	        case RELEASE:
+	        {
+	            if( pakiet.who == DWARF ) {
+	                index = std::find(zgodyGnom.begin(), zgodyGnom.end(), pakiet.src);
+                    if (index != zgodyGnom.end()) {
+                        zgodyGnom.erase(index);
+                        ackDwarves--;
+                        println("Usuwam ACK od skrzata %d, mam teraz %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
+                    }
+                    receivedReleaseFromDwarf = TRUE;
+                } else if ( pakiet.who == GNOME && receivedReleaseFromDwarf) {
+                    if(std::find(zgodyGnom.begin(), zgodyGnom.end(), pakiet.src) == zgodyGnom.end()) {
+                        ackGnomes++;
+                        zgodyGnom.push_back(pakiet.src);
+                        debug("Dostałem RELEASE, ktory traktuje jak ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
+                    }
+                    receivedReleaseFromDwarf = FALSE;
+                }
+                break;
 	        }
 	        default:
 	            break;
@@ -144,7 +160,6 @@ void *startComDwarf(void *ptr)
 	        case REQUEST:
 	            {
                 if(pakiet.what == PIN){
-                    //debug("Otrzymalem prosbe o agrafke");
                     if(stan == InWantWeapon){
                         sendPacket( pkt, status.MPI_SOURCE, ACK );
                     }else{
@@ -152,7 +167,6 @@ void *startComDwarf(void *ptr)
                     }
                 }
                 if(pakiet.what == SIGHT){
-                    //debug("Otrzymalem prosbe o celownik");
                     if(stan == InWantWeapon){
                         sendPacket( pkt, status.MPI_SOURCE, ACK );
                     }else{
@@ -160,24 +174,7 @@ void *startComDwarf(void *ptr)
                     }
                 }
                 if(pakiet.what == WEAPON){
-                    //debug("Otrzymalem prosbe o bron");
-                    /*if(stan == InWantWeapon && pakiet.ts > vClock){
-                        if(pakiet.who == DWARF){
-                            if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
-                                ackDwarves++;
-                                zgody.push_back(pakiet.src);
-                                debug("Dostałem REQ, ktory traktuje jak ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
-                            }
-                        }
-                        if(pakiet.who == GNOME){
-                            if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
-                                ackGnomes++;
-                                zgody.push_back(pakiet.src);
-                                debug("Dostałem REQ, ktory traktuje jak ACK od %d, mam już %d", status.MPI_SOURCE, ackDwarves+ackGnomes);
-                            }
-                        }
-                    }*/
-                    if(stan != InWantWeapon){
+                    if(stan != InWantWeapon && stan != InSection){
                         sendPacket( pkt, status.MPI_SOURCE, ACK );
                     }
                 }
@@ -185,19 +182,21 @@ void *startComDwarf(void *ptr)
 	        }
 	        case ACK: 
 	        {
-	            if(pakiet.who == DWARF){
+	            if(pakiet.who == DWARF) {
 	                if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
                         ackDwarves++;
                         zgody.push_back(pakiet.src);
+                        debug("Dostałem ACK od %d, mam już %d od skrzatow i %d od gnomow", status.MPI_SOURCE, ackDwarves, ackGnomes);
                     }
                 }
-                if(pakiet.who == GNOME){
+                else if(pakiet.who == GNOME){
                     if(std::find(zgody.begin(), zgody.end(), pakiet.src) == zgody.end()) {
                         ackGnomes++;
                         zgody.push_back(pakiet.src);
+                        debug("Dostałem ACK od %d, mam już %d od skrzatow i %d od gnomow", status.MPI_SOURCE, ackDwarves, ackGnomes);
                     }
                 }
-                debug("Dostałem ACK od %d, mam już %d od skrzatow i %d od gnomow", status.MPI_SOURCE, ackDwarves, ackGnomes);
+                else debug("Nie udalo sie odebrac ACK");
 	            break;
 	        }
 	        default:
